@@ -64,6 +64,9 @@ st.set_page_config(
     },
 )
 
+# Google Search Console verification
+st.markdown('<meta name="google-site-verification" content="AOXqt1X8NE0-WmCJra1muh3GZrWvJCY9J0e-2VP1LQE" />', unsafe_allow_html=True)
+
 
 MAX_RESUME_SIZE_MB = 5
 
@@ -1039,7 +1042,6 @@ AGENT_STEPS = [
 # ── MAIN INPUT FORM ───────────────────────────────────────────────────────────
 show_landing()
 
-# ── Input Form: hamesha dikhta hai ──────────────────────────────────────────
 col_left, col_right = st.columns([1, 1], gap="large")
 
 with col_left:
@@ -1079,30 +1081,23 @@ if st.session_state.report is not None:
         st.session_state.current_step = 0
         st.rerun()
 
-# ── Analysis placeholder: button ke JUST NEECHE, hamesha yahi ────────────────
-# Jab analysis chal rahi ho to progress yahan dikhegi — form upar wahi rahega.
-# Jab kuch nahi chal raha to ye empty rahega (koi space nahi leta).
-analysis_placeholder = st.empty()
-
-# Extra landing-page info — sirf tab jab koi report nahi aur analysis nahi chal rahi
+# Extra landing-page info (How It Works, checks grid, tools, FAQ) — shown
+# below the upload form, but only before a report exists so it doesn't
+# clutter the results view.
 if st.session_state.report is None and not st.session_state.running:
     show_more_info()
 
 
 # ── RUN PIPELINE ──────────────────────────────────────────────────────────────
-
 if run_clicked:
-    # ── Validation: pehle sab check karo, kuch bhi missing ho toh rok do ──
-    if not resume_file and not jd_text.strip():
-        st.error("⬆️ Pehle resume upload karein aur job description paste karein.")
-    elif not resume_file:
-        st.error("⬆️ Pehle apna resume upload karein (PDF ya DOCX).")
+    if not resume_file:
+        st.error("⬆️ Please upload your resume first.")
     elif resume_file.size > MAX_RESUME_SIZE_MB * 1024 * 1024:
-        st.error(f"❌ File bahut badi hai. Maximum size {MAX_RESUME_SIZE_MB} MB hai.")
+        st.error(f"❌ File too large. Maximum size is {MAX_RESUME_SIZE_MB} MB.")
     elif not jd_text.strip():
-        st.error("📋 Job description paste karein.")
+        st.error("📋 Please paste the job description.")
     elif len(jd_text.strip()) < 50:
-        st.error("📋 Job description bahut chhoti hai. Poori JD paste karein.")
+        st.error("📋 Job description is too short. Please paste the complete JD.")
     else:
         st.session_state.running = True
         tmp_path = None
@@ -1113,72 +1108,64 @@ if run_clicked:
                 tmp.write(resume_file.read())
                 tmp_path = tmp.name
 
-            # Saari progress UI ek hi container ke andar — page scroll nahi hoga
-            with analysis_placeholder.container():
-                st.markdown("---")
-                st.markdown("### ⚙️ Analysis in Progress")
-                st.caption("Sit tight — 13 AI agents are reviewing your resume. This takes 1–3 minutes.")
+            st.markdown("---")
+            st.markdown("### ⚙️ Analysis in Progress")
+            st.caption("Sit tight — 13 AI agents are reviewing your resume. This takes 1–3 minutes.")
 
-                # Progress bar
-                progress_bar = st.progress(0)
+            # Progress bar
+            progress_bar = st.progress(0)
 
-                # Step indicators container
-                step_container = st.empty()
-                tip_container  = st.empty()
+            # Step indicators container
+            step_container = st.empty()
+            tip_container  = st.empty()
 
-                completed_steps = []
+            completed_steps = []
 
-                def update_progress(step, total, label):
-                    progress_bar.progress(step / total)
-                    completed_steps.append(label)
-                    st.session_state.current_step = step
+            def update_progress(step, total, label):
+                progress_bar.progress(step / total)
+                completed_steps.append(label)
+                st.session_state.current_step = step
 
-                    # Render all steps with status
-                    steps_html = ""
-                    for i, s in enumerate(AGENT_STEPS):
-                        if i < step:
-                            steps_html += f'<div class="step-indicator"><div class="step-dot-done"></div> <span style="color:#15803d;text-decoration:line-through;opacity:0.6">{s}</span></div>'
-                        elif i == step:
-                            steps_html += f'<div class="step-indicator"><div class="step-dot-active"></div> <span style="color:#2563eb;font-weight:600">{s}</span></div>'
-                        else:
-                            steps_html += f'<div class="step-indicator"><div class="step-dot-pending"></div> <span style="color:#94a3b8">{s}</span></div>'
+                # Render completed steps
+                steps_html = ""
+                for i, s in enumerate(AGENT_STEPS):
+                    if i < step:
+                        steps_html += f'<div class="step-indicator"><div class="step-dot-done"></div> <span style="color:#15803d;text-decoration:line-through;opacity:0.6">{s}</span></div>'
+                    elif i == step:
+                        steps_html += f'<div class="step-indicator"><div class="step-dot-active"></div> <span style="color:#2563eb;font-weight:600">{s}</span></div>'
+                    else:
+                        steps_html += f'<div class="step-indicator"><div class="step-dot-pending"></div> <span style="color:#94a3b8">{s}</span></div>'
 
-                    step_container.markdown(steps_html, unsafe_allow_html=True)
+                step_container.markdown(steps_html, unsafe_allow_html=True)
 
-                    # Tip box
-                    tip = AGENT_TIPS.get(step, "")
-                    if tip:
-                        tip_container.markdown(f'<div class="tip-box">💡 {tip}</div>', unsafe_allow_html=True)
+                # Show tip
+                tip = AGENT_TIPS.get(step, "")
+                if tip:
+                    tip_container.markdown(f'<div class="tip-box">💡 {tip}</div>', unsafe_allow_html=True)
 
-                report = run_pipeline(
-                    tmp_path,
-                    jd_text=jd_text,
-                    company_name=company_name,
-                    progress_callback=update_progress,
-                    save_to_disk=False,
-                )
+            report = run_pipeline(
+                tmp_path,
+                jd_text=jd_text,
+                company_name=company_name,
+                progress_callback=update_progress,
+                save_to_disk=False,
+            )
 
-                progress_bar.progress(1.0)
-                tip_container.empty()
-                step_container.empty()
-                st.success("✅ Analysis complete! Results neeche dekh sakte hain.")
+            progress_bar.progress(1.0)
+            tip_container.empty()
+            step_container.empty()
+            st.success("✅ Analysis complete! Scroll down to see your results.")
 
             st.session_state.report = report
             st.session_state.report_company_name = company_name
-            st.session_state.running = False
-            if tmp_path and os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-            # Analysis done — ab rerun karo taaki form hide ho aur results dikhen
-            st.rerun()
 
         except Exception as e:
             _show_friendly_error(e)
+        finally:
             st.session_state.running = False
             if tmp_path and os.path.exists(tmp_path):
-                try:
-                    os.unlink(tmp_path)
-                except OSError:
-                    pass
+                os.unlink(tmp_path)
+            st.rerun()
 
 
 # ── RESULTS ───────────────────────────────────────────────────────────────────
