@@ -16,6 +16,7 @@ import time
 import tempfile
 import contextlib
 import streamlit as st
+import streamlit.components.v1 as components
 
 from main import run_pipeline
 from resume_templates import generate_resume_pdf, list_templates
@@ -64,16 +65,42 @@ st.set_page_config(
     },
 )
 
-# Google Analytics
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-MXCRMNSXNR"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
 
-  gtag('config', 'G-MXCRMNSXNR');
-</script>
+# ── Google Analytics (GA4) ───────────────────────────────────────────────────
+# Streamlit renders st.markdown() through dangerouslySetInnerHTML, and
+# browsers never execute <script> tags inserted that way — so the gtag.js
+# snippet can't just be dropped into a markdown string, it would silently
+# do nothing. Instead this renders a 0×0 components.html() iframe whose only
+# job is to script its way into window.parent.document (the real page) and
+# append the actual GA <script> tags there. The id-check guard means it only
+# injects once even though Streamlit reruns this script on every interaction.
+def _inject_google_analytics(measurement_id: str = "G-MXCRMNSXNR"):
+    components.html(
+        f"""
+        <script>
+        (function() {{
+            var doc = window.parent.document;
+            if (doc.getElementById('ga-gtag-script')) return;  // already injected, skip
+
+            var s1 = doc.createElement('script');
+            s1.id = 'ga-gtag-script';
+            s1.async = true;
+            s1.src = 'https://www.googletagmanager.com/gtag/js?id={measurement_id}';
+            doc.head.appendChild(s1);
+
+            window.parent.dataLayer = window.parent.dataLayer || [];
+            window.parent.gtag = function() {{ window.parent.dataLayer.push(arguments); }};
+            window.parent.gtag('js', new Date());
+            window.parent.gtag('config', '{measurement_id}');
+        }})();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
+
+_inject_google_analytics()
 
 
 MAX_RESUME_SIZE_MB = 5
