@@ -82,13 +82,17 @@ def _patch_streamlit_head(slots: dict):
     import pathlib
     import re
 
+    logs = []  # collected here instead of print()'d — the Cloud "Logs" viewer
+               # doesn't reliably surface per-visit stdout, so this gets shown
+               # directly on the page instead (see the debug expander below).
+
     try:
         index_path = pathlib.Path(st.__file__).parent / "static" / "index.html"
-        print(f"[head-patch] looking for index.html at: {index_path}")
-        print(f"[head-patch] exists: {index_path.exists()}")
+        logs.append(f"index.html path: {index_path}")
+        logs.append(f"exists: {index_path.exists()}")
 
         html = index_path.read_text(encoding="utf-8")
-        print(f"[head-patch] read {len(html)} chars; contains '<head>': {'<head>' in html}")
+        logs.append(f"read {len(html)} chars — contains '<head>': {'<head>' in html}")
         changed = False
 
         for slot_name, snippet in slots.items():
@@ -99,10 +103,10 @@ def _patch_streamlit_head(slots: dict):
 
             if re.search(pattern, html, flags=re.DOTALL):
                 new_html = re.sub(pattern, block, html, flags=re.DOTALL)
-                print(f"[head-patch] slot '{slot_name}': found existing block, replaced")
+                logs.append(f"slot '{slot_name}': found existing block, replaced")
             else:
                 new_html = html.replace("<head>", "<head>\n" + block + "\n", 1)
-                print(f"[head-patch] slot '{slot_name}': no existing block, inserted fresh")
+                logs.append(f"slot '{slot_name}': no existing block, inserted fresh")
 
             if new_html != html:
                 html = new_html
@@ -110,18 +114,20 @@ def _patch_streamlit_head(slots: dict):
 
         if changed:
             index_path.write_text(html, encoding="utf-8")
-            print("[head-patch] wrote updated index.html successfully")
+            logs.append("wrote updated index.html successfully")
         else:
-            print("[head-patch] no changes needed, file left as-is")
+            logs.append("no changes needed, file already up to date")
     except Exception as e:
         # Tags are non-critical — never let a patch failure break the app —
-        # but DO surface it in the logs so it's not a silent, invisible failure.
-        print(f"[head-patch] FAILED: {type(e).__name__}: {e}")
+        # but DO surface it (in the debug expander) so it's not invisible.
+        logs.append(f"FAILED: {type(e).__name__}: {e}")
+
+    return logs
 
 
 _GA_MEASUREMENT_ID = "G-P0VRFWVQ9T"
 
-_patch_streamlit_head({
+_head_patch_logs = _patch_streamlit_head({
     "google-analytics": f"""<script async src="https://www.googletagmanager.com/gtag/js?id={_GA_MEASUREMENT_ID}"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -135,6 +141,13 @@ _patch_streamlit_head({
         'content="_qo1PUczRxCQ8jxIjllvlFqrJmrMolPLlDgZwtDT4oU" />'
     ),
 })
+
+# TEMPORARY — visible right on the page so it doesn't depend on the Cloud
+# logs viewer at all. Remove this expander once the tags are confirmed
+# working (search this comment to find it again).
+with st.expander("🔧 Debug: GA / verification tag patch status", expanded=True):
+    for _line in _head_patch_logs:
+        st.code(_line, language=None)
 
 
 MAX_RESUME_SIZE_MB = 5
