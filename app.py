@@ -64,8 +64,16 @@ st.set_page_config(
     },
 )
 
-# Google Search Console verification
-st.markdown('<meta name="google-site-verification" content="AOXqt1X8NE0-WmCJra1muh3GZrWvJCY9J0e-2VP1LQE" />', unsafe_allow_html=True)
+# Google Analytics + Search Console verification
+st.markdown("""
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-0K96LPGBHF"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-0K96LPGBHF');
+</script>
+""", unsafe_allow_html=True)
 
 
 MAX_RESUME_SIZE_MB = 5
