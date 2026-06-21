@@ -65,47 +65,56 @@ st.set_page_config(
 )
 
 
-# ── Google Analytics (GA4) ───────────────────────────────────────────────────
-# A components.html() iframe was tried first, but Streamlit sandboxes that
-# iframe (no `allow-same-origin`), so it gets an opaque cross-origin identity
-# and any attempt to reach `window.parent.document` is blocked by the browser
-# — the script never actually lands on the real page, which is why Google's
-# tag-test reported "not detected" even though the code looked right.
+# ── Inject tags into the real page <head> ───────────────────────────────────
+# Streamlit serves one static index.html shell for the whole app, and there's
+# no first-class API to add things to its <head> (a sandboxed components.html()
+# iframe can't reach window.parent.document either — Streamlit denies it
+# `allow-same-origin`). So this patches the snippets straight into Streamlit's
+# own static/index.html on disk, once, at process startup.
 #
-# The only way to get a real, top-level <script> tag into the page <head> is
-# to patch it straight into Streamlit's own static/index.html — the single
-# HTML shell Streamlit serves for the whole app — once, at process startup.
-# The HTML marker comment makes this idempotent: on every rerun (and every
-# fresh redeploy, since site-packages is reinstalled from scratch) it checks
-# whether the tag is already there before writing, so it's never duplicated.
-def _inject_google_analytics(measurement_id: str = "G-MXCRMNSXNR"):
+# Each snippet gets its own HTML marker comment, checked independently —
+# so re-running this on every script rerun, and on every fresh redeploy
+# (site-packages is reinstalled from scratch each time), never duplicates
+# a tag that's already there, and adding a new tag later doesn't require
+# re-patching the ones already in place.
+def _patch_streamlit_head(snippets: dict):
     import pathlib
 
     try:
         index_path = pathlib.Path(st.__file__).parent / "static" / "index.html"
         html = index_path.read_text(encoding="utf-8")
+        changed = False
 
-        marker = f"<!-- ga4-{measurement_id} -->"
-        if marker in html:
-            return  # already patched on a previous boot — don't duplicate
+        for marker, snippet in snippets.items():
+            if marker in html:
+                continue  # this tag was already patched in on a previous boot
+            block = f"{marker}\n{snippet}\n"
+            html = html.replace("<head>", "<head>\n" + block, 1)
+            changed = True
 
-        snippet = f"""{marker}
-<script async src="https://www.googletagmanager.com/gtag/js?id={measurement_id}"></script>
+        if changed:
+            index_path.write_text(html, encoding="utf-8")
+    except Exception:
+        # Tags are non-critical — never let a patch failure break the app.
+        pass
+
+
+_GA_MEASUREMENT_ID = "G-MXCRMNSXNR"
+
+_patch_streamlit_head({
+    f"<!-- ga4-{_GA_MEASUREMENT_ID} -->": f"""<script async src="https://www.googletagmanager.com/gtag/js?id={_GA_MEASUREMENT_ID}"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){{ dataLayer.push(arguments); }}
   gtag('js', new Date());
-  gtag('config', '{measurement_id}');
-</script>
-"""
-        patched = html.replace("<head>", "<head>\n" + snippet, 1)
-        index_path.write_text(patched, encoding="utf-8")
-    except Exception:
-        # Analytics is non-critical — never let a patch failure break the app.
-        pass
+  gtag('config', '{_GA_MEASUREMENT_ID}');
+</script>""",
 
-
-_inject_google_analytics()
+    "<!-- google-site-verification -->": (
+        '<meta name="google-site-verification" '
+        'content="_qo1PUczRxCQ8jxIjllvlFqrJmrMolPLlDgZwtDT4oU" />'
+    ),
+})
 
 
 MAX_RESUME_SIZE_MB = 5
