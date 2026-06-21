@@ -84,7 +84,11 @@ def _patch_streamlit_head(slots: dict):
 
     try:
         index_path = pathlib.Path(st.__file__).parent / "static" / "index.html"
+        print(f"[head-patch] looking for index.html at: {index_path}")
+        print(f"[head-patch] exists: {index_path.exists()}")
+
         html = index_path.read_text(encoding="utf-8")
+        print(f"[head-patch] read {len(html)} chars; contains '<head>': {'<head>' in html}")
         changed = False
 
         for slot_name, snippet in slots.items():
@@ -95,8 +99,10 @@ def _patch_streamlit_head(slots: dict):
 
             if re.search(pattern, html, flags=re.DOTALL):
                 new_html = re.sub(pattern, block, html, flags=re.DOTALL)
+                print(f"[head-patch] slot '{slot_name}': found existing block, replaced")
             else:
                 new_html = html.replace("<head>", "<head>\n" + block + "\n", 1)
+                print(f"[head-patch] slot '{slot_name}': no existing block, inserted fresh")
 
             if new_html != html:
                 html = new_html
@@ -104,9 +110,13 @@ def _patch_streamlit_head(slots: dict):
 
         if changed:
             index_path.write_text(html, encoding="utf-8")
-    except Exception:
-        # Tags are non-critical — never let a patch failure break the app.
-        pass
+            print("[head-patch] wrote updated index.html successfully")
+        else:
+            print("[head-patch] no changes needed, file left as-is")
+    except Exception as e:
+        # Tags are non-critical — never let a patch failure break the app —
+        # but DO surface it in the logs so it's not a silent, invisible failure.
+        print(f"[head-patch] FAILED: {type(e).__name__}: {e}")
 
 
 _GA_MEASUREMENT_ID = "G-P0VRFWVQ9T"
