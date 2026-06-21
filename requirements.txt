@@ -1,0 +1,20 @@
+# ── Core ──────────────────────────────────────────────────────
+streamlit>=1.40.0
+python-dotenv>=1.0.0
+
+# ── Resume parsing ────────────────────────────────────────────
+pdfplumber>=0.11.0
+python-docx>=1.1.0
+
+# ── PDF/DOCX generation ───────────────────────────────────────
+reportlab>=4.0.0
+
+# ── LLM Providers (install only what you use) ─────────────────
+# Gemini (Google AI Studio)
+google-genai>=1.0.0
+
+# Groq, Cerebras, Mistral, GitHub Models, Azure (all OpenAI-compatible)
+openai>=1.40.0
+
+# ── Optional: Mistral native SDK (not required — openai compat works) ──
+# mistralai>=1.0.0
