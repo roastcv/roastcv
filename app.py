@@ -64,12 +64,11 @@ st.set_page_config(
     },
 )
 
-# ── Google Site Verification Meta Tag ─────────────────────────────────────────
-st.components.v1.html(
+# ── Google Site Verification Tag (FIXED FOR STREAMLIT) ────────────────────────
+st.html(
     """
     <meta name="google-site-verification" content="TLxxtymrjcjvNaQLlmK0DDBrzQe1D1IvzuFQ9fzWlkc" />
-    """,
-    height=0,
+    """
 )
 
 
@@ -1702,3 +1701,4 @@ if st.session_state.report is not None:
         </div>
     </div>
     """, unsafe_allow_html=True)
+}
