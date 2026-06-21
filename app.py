@@ -54,7 +54,7 @@ def temp_output_path(suffix: str):
 _page_icon = "logo.png" if os.path.exists("logo.png") else "🔥"
 
 st.set_page_config(
-    page_title="RoastCV — Free AI Resume Analyzer",
+    page_title="RoastCV — Free AI Resume Roast & ATS Checker",
     page_icon=_page_icon,
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -78,6 +78,44 @@ st.markdown(
             meta.content = "TLxxtymrjcjvNaQLlmK0DDBrzQe1D1IvzuFQ9fzWlkc";
             document.head.appendChild(meta);
         }
+    })();
+    </script>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ── SEO Meta Tags ─────────────────────────────────────────────────────────────
+# Same JS-injection technique as above. NOTE: this helps Google's *search/index*
+# crawler (Googlebot renders JavaScript when indexing pages), but it will NOT
+# help with Search Console's *ownership verification* crawler — that one never
+# executes JS, which is why the google-site-verification tag above must stay
+# DNS-based once a custom domain is set up. Meta description/keywords don't
+# have that restriction since they're only read by the indexing crawler.
+st.markdown(
+    """
+    <script>
+    (function() {
+        function setMeta(name, content) {
+            var tag = document.querySelector('meta[name="' + name + '"]');
+            if (!tag) {
+                tag = document.createElement('meta');
+                tag.name = name;
+                document.head.appendChild(tag);
+            }
+            tag.content = content;
+        }
+        setMeta(
+            "description",
+            "Free AI resume roast & ATS resume checker. Upload your CV for instant, " +
+            "brutally honest feedback from 13 AI agents, plus an ATS-optimized resume " +
+            "rewrite, cover letter, and interview prep \u2014 completely free."
+        );
+        setMeta(
+            "keywords",
+            "AI resume roast, resume roaster, CV roaster, ATS resume checker, " +
+            "free resume checker, review my resume, ATS score checker, resume analyzer, " +
+            "AI resume review, cover letter generator, interview preparation"
+        );
     })();
     </script>
     """,
@@ -765,12 +803,12 @@ def show_landing():
         st.markdown(f"""
         <div class="hero-split">
             <div class="hero-left">
-                <div class="hero-eyebrow">{_badge_icon} Free · AI-Powered · 13 Agents</div>
-                <div class="hero-headline">Is your resume <span class="accent">actually</span> working?</div>
+                <div class="hero-eyebrow">{_badge_icon} Free AI Resume Roast · ATS Resume Checker</div>
+                <h1 class="hero-headline">Is your resume <span class="accent">actually</span> working?</h1>
                 <div class="hero-desc">
-                    13 AI agents — recruiter, hiring manager, ATS bot, HR reviewer and more —
-                    tear into your resume and tell you exactly what's wrong, in plain language.
-                    No sugar-coating.
+                    Get a free AI resume roast and instant ATS resume check. 13 AI agents —
+                    recruiter, hiring manager, ATS bot, HR reviewer and more — tear into your
+                    resume and tell you exactly what's wrong, in plain language. No sugar-coating.
                 </div>
                 <div class="hero-badges-row">
                     <span class="hero-badge">✅ Free</span>
