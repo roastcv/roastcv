@@ -64,11 +64,24 @@ st.set_page_config(
     },
 )
 
-# ── Google Site Verification Tag (FIXED FOR STREAMLIT) ────────────────────────
-st.html(
+# ── Google Site Verification ─────────────────────────────────────────────────
+# Streamlit doesn't expose the <head> tag directly via st.markdown (it injects
+# into <body>), so the meta tag is added with a tiny JS snippet that appends it
+# to document.head. This lets Google Search Console verify site ownership.
+st.markdown(
     """
-    <meta name="google-site-verification" content="TLxxtymrjcjvNaQLlmK0DDBrzQe1D1IvzuFQ9fzWlkc" />
-    """
+    <script>
+    (function() {
+        if (!document.querySelector('meta[name="google-site-verification"]')) {
+            var meta = document.createElement('meta');
+            meta.name = "google-site-verification";
+            meta.content = "TLxxtymrjcjvNaQLlmK0DDBrzQe1D1IvzuFQ9fzWlkc";
+            document.head.appendChild(meta);
+        }
+    })();
+    </script>
+    """,
+    unsafe_allow_html=True,
 )
 
 
