@@ -65,16 +65,15 @@ st.set_page_config(
 )
 
 # Google Analytics
-st.markdown("""
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-0K96LPGBHF"></script>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-MXCRMNSXNR"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
+
   gtag('config', 'G-MXCRMNSXNR');
 </script>
-<meta name="google-site-verification" content="_qo1PUczRxCQ8jxIjllvlFqrJmrMolPLlDgZwtDT4oU" />
-""", unsafe_allow_html=True)
 
 
 MAX_RESUME_SIZE_MB = 5
