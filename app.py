@@ -1702,4 +1702,3 @@ if st.session_state.report is not None:
         </div>
     </div>
     """, unsafe_allow_html=True)
-}
