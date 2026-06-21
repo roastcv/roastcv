@@ -16,7 +16,6 @@ import time
 import tempfile
 import contextlib
 import streamlit as st
-import streamlit.components.v1 as components
 
 from main import run_pipeline
 from resume_templates import generate_resume_pdf, list_templates
@@ -67,37 +66,43 @@ st.set_page_config(
 
 
 # ── Google Analytics (GA4) ───────────────────────────────────────────────────
-# Streamlit renders st.markdown() through dangerouslySetInnerHTML, and
-# browsers never execute <script> tags inserted that way — so the gtag.js
-# snippet can't just be dropped into a markdown string, it would silently
-# do nothing. Instead this renders a 0×0 components.html() iframe whose only
-# job is to script its way into window.parent.document (the real page) and
-# append the actual GA <script> tags there. The id-check guard means it only
-# injects once even though Streamlit reruns this script on every interaction.
+# A components.html() iframe was tried first, but Streamlit sandboxes that
+# iframe (no `allow-same-origin`), so it gets an opaque cross-origin identity
+# and any attempt to reach `window.parent.document` is blocked by the browser
+# — the script never actually lands on the real page, which is why Google's
+# tag-test reported "not detected" even though the code looked right.
+#
+# The only way to get a real, top-level <script> tag into the page <head> is
+# to patch it straight into Streamlit's own static/index.html — the single
+# HTML shell Streamlit serves for the whole app — once, at process startup.
+# The HTML marker comment makes this idempotent: on every rerun (and every
+# fresh redeploy, since site-packages is reinstalled from scratch) it checks
+# whether the tag is already there before writing, so it's never duplicated.
 def _inject_google_analytics(measurement_id: str = "G-MXCRMNSXNR"):
-    components.html(
-        f"""
-        <script>
-        (function() {{
-            var doc = window.parent.document;
-            if (doc.getElementById('ga-gtag-script')) return;  // already injected, skip
+    import pathlib
 
-            var s1 = doc.createElement('script');
-            s1.id = 'ga-gtag-script';
-            s1.async = true;
-            s1.src = 'https://www.googletagmanager.com/gtag/js?id={measurement_id}';
-            doc.head.appendChild(s1);
+    try:
+        index_path = pathlib.Path(st.__file__).parent / "static" / "index.html"
+        html = index_path.read_text(encoding="utf-8")
 
-            window.parent.dataLayer = window.parent.dataLayer || [];
-            window.parent.gtag = function() {{ window.parent.dataLayer.push(arguments); }};
-            window.parent.gtag('js', new Date());
-            window.parent.gtag('config', '{measurement_id}');
-        }})();
-        </script>
-        """,
-        height=0,
-        width=0,
-    )
+        marker = f"<!-- ga4-{measurement_id} -->"
+        if marker in html:
+            return  # already patched on a previous boot — don't duplicate
+
+        snippet = f"""{marker}
+<script async src="https://www.googletagmanager.com/gtag/js?id={measurement_id}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{ dataLayer.push(arguments); }}
+  gtag('js', new Date());
+  gtag('config', '{measurement_id}');
+</script>
+"""
+        patched = html.replace("<head>", "<head>\n" + snippet, 1)
+        index_path.write_text(patched, encoding="utf-8")
+    except Exception:
+        # Analytics is non-critical — never let a patch failure break the app.
+        pass
 
 
 _inject_google_analytics()
