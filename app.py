@@ -71,7 +71,7 @@ st.markdown("""
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  gtag('config', 'G-0K96LPGBHF');
+  gtag('config', 'G-MXCRMNSXNR');
 </script>
 <meta name="google-site-verification" content="_qo1PUczRxCQ8jxIjllvlFqrJmrMolPLlDgZwtDT4oU" />
 """, unsafe_allow_html=True)
