@@ -21,7 +21,34 @@ from main import run_pipeline
 from resume_templates import generate_resume_pdf, list_templates
 from resume_pdf import generate_cover_letter_pdf
 from resume_docx import generate_resume_docx, generate_cover_letter_docx
+import streamlit as st
+import streamlit.components.v1 as components
+# ... aapke baaki imports (main, resume_templates, etc.) ...
 
+# --- SEO AUR ANALYTICS KA CODE YAHAN RAKHEIN ---
+def inject_seo_and_analytics():
+    gtm_code = """
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-P0VRFWVQ9T"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-P0VRFWVQ9T');
+    </script>
+    """
+    meta_tags = """
+    <meta name="description" content="RoastCV: AI-powered ATS resume analyzer and builder. Optimize your resume for better job prospects.">
+    <meta name="keywords" content="Resume Analyzer, ATS Score, AI Resume Builder, Job Search, RoastCV">
+    """
+    components.html(gtm_code, height=0, width=0)
+    st.markdown(meta_tags, unsafe_allow_html=True)
+
+# Page setup ke baad isse call karein
+st.set_page_config(page_title="RoastCV", page_icon="📄", layout="wide")
+inject_seo_and_analytics()
+# --- SEO CODE ENDS HERE ---
+
+# --- Ab aapka baaki ka pura code (main functions, buttons, etc.) yahan se shuru hoga ---
 
 @contextlib.contextmanager
 def temp_output_path(suffix: str):
