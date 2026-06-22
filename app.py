@@ -557,6 +557,19 @@ html, body, [class*="css"] {
 #MainMenu {visibility: hidden;}
 footer    {visibility: hidden;}
 
+/* Hide Streamlit default "200MB per file" text in file uploader */
+[data-testid="stFileUploaderDropzoneInstructions"] div small {
+    display: none !important;
+}
+/* Replace with custom text via ::after */
+[data-testid="stFileUploaderDropzoneInstructions"] div::after {
+    content: "PDF or DOCX · Max 5 MB";
+    font-size: 0.8rem;
+    color: rgba(250,250,250,0.5);
+    display: block;
+    margin-top: 2px;
+}
+
 /* ── COLORFUL FOOTER ── */
 .footer-wrapper {
     background: linear-gradient(160deg, #0f172a 0%, #1a2e4a 50%, #1e3a8a 100%);
@@ -1112,7 +1125,7 @@ with col_left:
         "📎 Upload Resume (PDF or DOCX) — Max 5 MB",
         type=["pdf", "docx"],
         disabled=st.session_state.running,
-        help="✅ Sirf 5 MB tak. Text-based PDF ya DOCX chahiye — scanned image PDF kaam nahi karega.",
+        help="✅ Max 5 MB. Must be a text-based PDF or DOCX — scanned image PDFs cannot be read.",
     )
 
 with col_right:
@@ -1762,7 +1775,7 @@ if st.session_state.report is not None:
             </div>
         </div>
         <div class="footer-bottom">
-            <span>© 2025 RoastCV — All rights reserved</span>
+            <span>© 2026 RoastCV — All rights reserved</span>
             <span style="opacity:0.5; margin: 0 0.75rem;">|</span>
             <span>Powered by AI · Built for job seekers</span>
         </div>
