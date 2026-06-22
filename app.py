@@ -54,7 +54,7 @@ def temp_output_path(suffix: str):
 _page_icon = "logo.png" if os.path.exists("logo.png") else "🔥"
 
 st.set_page_config(
-    page_title="RoastCV — Free AI Resume Roast & ATS Checker",
+    page_title="RoastCV — Free AI Resume Analyzer",
     page_icon=_page_icon,
     layout="wide",
     initial_sidebar_state="collapsed",
@@ -62,64 +62,6 @@ st.set_page_config(
         "Get Help": "mailto:support@roastcv.io",
         "About": "RoastCV — Powered by AI agents to help you land your dream job.",
     },
-)
-
-# ── Google Site Verification ─────────────────────────────────────────────────
-# Streamlit doesn't expose the <head> tag directly via st.markdown (it injects
-# into <body>), so the meta tag is added with a tiny JS snippet that appends it
-# to document.head. This lets Google Search Console verify site ownership.
-st.markdown(
-    """
-    <script>
-    (function() {
-        if (!document.querySelector('meta[name="google-site-verification"]')) {
-            var meta = document.createElement('meta');
-            meta.name = "google-site-verification";
-            meta.content = "TLxxtymrjcjvNaQLlmK0DDBrzQe1D1IvzuFQ9fzWlkc";
-            document.head.appendChild(meta);
-        }
-    })();
-    </script>
-    """,
-    unsafe_allow_html=True,
-)
-
-# ── SEO Meta Tags ─────────────────────────────────────────────────────────────
-# Same JS-injection technique as above. NOTE: this helps Google's *search/index*
-# crawler (Googlebot renders JavaScript when indexing pages), but it will NOT
-# help with Search Console's *ownership verification* crawler — that one never
-# executes JS, which is why the google-site-verification tag above must stay
-# DNS-based once a custom domain is set up. Meta description/keywords don't
-# have that restriction since they're only read by the indexing crawler.
-st.markdown(
-    """
-    <script>
-    (function() {
-        function setMeta(name, content) {
-            var tag = document.querySelector('meta[name="' + name + '"]');
-            if (!tag) {
-                tag = document.createElement('meta');
-                tag.name = name;
-                document.head.appendChild(tag);
-            }
-            tag.content = content;
-        }
-        setMeta(
-            "description",
-            "Free AI resume roast & ATS resume checker. Upload your CV for instant, " +
-            "brutally honest feedback from 13 AI agents, plus an ATS-optimized resume " +
-            "rewrite, cover letter, and interview prep \u2014 completely free."
-        );
-        setMeta(
-            "keywords",
-            "AI resume roast, resume roaster, CV roaster, ATS resume checker, " +
-            "free resume checker, review my resume, ATS score checker, resume analyzer, " +
-            "AI resume review, cover letter generator, interview preparation"
-        );
-    })();
-    </script>
-    """,
-    unsafe_allow_html=True,
 )
 
 
@@ -803,12 +745,12 @@ def show_landing():
         st.markdown(f"""
         <div class="hero-split">
             <div class="hero-left">
-                <div class="hero-eyebrow">{_badge_icon} Free AI Resume Roast · ATS Resume Checker</div>
-                <h1 class="hero-headline">Is your resume <span class="accent">actually</span> working?</h1>
+                <div class="hero-eyebrow">{_badge_icon} Free · AI-Powered · 13 Agents</div>
+                <div class="hero-headline">Is your resume <span class="accent">actually</span> working?</div>
                 <div class="hero-desc">
-                    Get a free AI resume roast and instant ATS resume check. 13 AI agents —
-                    recruiter, hiring manager, ATS bot, HR reviewer and more — tear into your
-                    resume and tell you exactly what's wrong, in plain language. No sugar-coating.
+                    13 AI agents — recruiter, hiring manager, ATS bot, HR reviewer and more —
+                    tear into your resume and tell you exactly what's wrong, in plain language.
+                    No sugar-coating.
                 </div>
                 <div class="hero-badges-row">
                     <span class="hero-badge">✅ Free</span>
@@ -1057,6 +999,71 @@ def show_more_info():
         with st.expander(f"**{_q}**"):
             st.write(_a)
 
+    # ── Landing page footer ───────────────────────────────────────────────
+    _lp_logo_uri = _logo_data_uri()
+    _lp_icon = (
+        f'<img src="{_lp_logo_uri}" alt="logo" style="height:18px;width:18px;'
+        f'vertical-align:-3px;border-radius:3px;margin-right:4px;">' 
+        if _lp_logo_uri else "🔥"
+    )
+    st.markdown(f"""
+    <div class="footer-wrapper">
+        <div class="footer-stats">
+            <div class="footer-stat">
+                <div class="footer-stat-number">13</div>
+                <div class="footer-stat-label">AI Agents</div>
+            </div>
+            <div class="footer-stat">
+                <div class="footer-stat-number">24</div>
+                <div class="footer-stat-label">Resume Templates</div>
+            </div>
+            <div class="footer-stat">
+                <div class="footer-stat-number">100%</div>
+                <div class="footer-stat-label">Free to Use</div>
+            </div>
+            <div class="footer-stat">
+                <div class="footer-stat-number">PDF+DOCX</div>
+                <div class="footer-stat-label">Download Formats</div>
+            </div>
+        </div>
+        <div class="footer-cols">
+            <div class="footer-col">
+                <div class="footer-brand">{_lp_icon} RoastCV</div>
+                <div class="footer-brand-desc">
+                    Brutally honest AI-powered resume analysis to help you land your dream job.
+                    13 expert agents roast every aspect of your resume.
+                </div>
+            </div>
+            <div class="footer-col">
+                <div class="footer-col-title">Features</div>
+                <div class="footer-link">✅ ATS Score Check</div>
+                <div class="footer-link">✅ Gap Analysis</div>
+                <div class="footer-link">✅ AI Resume Rewrite</div>
+                <div class="footer-link">✅ Cover Letter Generator</div>
+                <div class="footer-link">✅ Interview Preparation</div>
+            </div>
+            <div class="footer-col">
+                <div class="footer-col-title">Supported Formats</div>
+                <div class="footer-link">📄 PDF Resume Upload</div>
+                <div class="footer-link">📝 DOCX Resume Upload</div>
+                <div class="footer-link">🎨 24 PDF Templates</div>
+                <div class="footer-link">📦 Download as PDF/DOCX</div>
+            </div>
+            <div class="footer-col">
+                <div class="footer-col-title">Note</div>
+                <div class="footer-link" style="color:rgba(255,255,255,0.55);font-size:0.78rem;line-height:1.6;">
+                    ATS scores are heuristic estimates. Real ATS algorithms (Workday, Taleo, Greenhouse) are proprietary and may differ.
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>© 2025 RoastCV — All rights reserved</span>
+            <span style="opacity:0.5; margin: 0 0.75rem;">|</span>
+            <span>Powered by AI · Built for job seekers</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 
 # ── PROGRESS TIPS (shown during analysis to keep users engaged) ───────────────
 AGENT_TIPS = {
@@ -1102,7 +1109,7 @@ col_left, col_right = st.columns([1, 1], gap="large")
 
 with col_left:
     resume_file = st.file_uploader(
-        "📎 Resume upload karein (PDF ya DOCX) — Max 5 MB",
+        "📎 Upload Resume (PDF or DOCX) — Max 5 MB",
         type=["pdf", "docx"],
         disabled=st.session_state.running,
         help="✅ Sirf 5 MB tak. Text-based PDF ya DOCX chahiye — scanned image PDF kaam nahi karega.",
@@ -1152,15 +1159,15 @@ if st.session_state.report is None and not st.session_state.running:
 if run_clicked:
     # ── Validation: pehle sab check karo, kuch bhi missing ho toh rok do ──
     if not resume_file and not jd_text.strip():
-        st.error("⬆️ Pehle resume upload karein aur job description paste karein.")
+        st.error("⬆️ Please upload your resume and paste a job description to continue.")
     elif not resume_file:
-        st.error("⬆️ Pehle apna resume upload karein (PDF ya DOCX).")
+        st.error("⬆️ Please upload your resume (PDF or DOCX) to continue.")
     elif resume_file.size > MAX_RESUME_SIZE_MB * 1024 * 1024:
-        st.error(f"❌ File bahut badi hai. Maximum size {MAX_RESUME_SIZE_MB} MB hai.")
+        st.error(f"❌ File too large. Maximum size is {MAX_RESUME_SIZE_MB} MB — please compress your resume.")
     elif not jd_text.strip():
-        st.error("📋 Job description paste karein.")
+        st.error("📋 Please paste the job description to continue.")
     elif len(jd_text.strip()) < 50:
-        st.error("📋 Job description bahut chhoti hai. Poori JD paste karein.")
+        st.error("📋 Job description is too short — please paste the full job description.")
     else:
         st.session_state.running = True
         tmp_path = None
@@ -1306,11 +1313,20 @@ if st.session_state.report is not None:
         ("Humanization",    scores.get("humanization_score"),    "/100"),
     ]
 
-    cols = st.columns(4)
-    for i, (label, val, suffix) in enumerate(score_items):
-        with cols[i % 4]:
+    # FIX: 7 items split into two rows (4+3) so no empty column gap
+    row1 = score_items[:4]
+    row2 = score_items[4:]
+    cols1 = st.columns(4)
+    for i, (label, val, suffix) in enumerate(row1):
+        with cols1[i]:
             display = f"{val}{suffix}" if isinstance(val, (int, float)) else "N/A"
             st.metric(label, display)
+    if row2:
+        cols2 = st.columns(len(row2))
+        for i, (label, val, suffix) in enumerate(row2):
+            with cols2[i]:
+                display = f"{val}{suffix}" if isinstance(val, (int, float)) else "N/A"
+                st.metric(label, display)
 
     # ── Download Report ───────────────────────────────────────
     st.markdown("---")
@@ -1663,7 +1679,7 @@ if st.session_state.report is not None:
     # ── Tab 8: Interview Prep ─────────────────────────────────
     with tabs[8]:
         prep = report.get("interview_prep", {})
-        if not any(prep.values()):
+        if not prep or not any(prep.values()):
             st.warning("Interview Coach agent failed.")
         else:
             category_config = {
