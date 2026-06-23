@@ -40,8 +40,27 @@ FALLBACK_PROVIDERS = [
 ]
 
 # ── Gemini ────────────────────────────────────────────────────
+# Supports MULTIPLE Gemini keys for rotation when one hits its free-tier
+# quota (each Google account/key gets its own 20 req/min free quota bucket).
+# Set GEMINI_API_KEY (primary) plus any of GEMINI_API_KEY1, GEMINI_API_KEY2,
+# GEMINI_API_KEY3... in .env / Render env vars — all of them get pooled.
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+_gemini_key_candidates = [
+    GEMINI_API_KEY,
+    os.getenv("GEMINI_API_KEY1"),
+    os.getenv("GEMINI_API_KEY2"),
+    os.getenv("GEMINI_API_KEY3"),
+    os.getenv("GEMINI_API_KEY4"),
+]
+# De-duplicate while preserving order, drop empty/None entries
+seen = set()
+GEMINI_API_KEYS = []
+for _k in _gemini_key_candidates:
+    if _k and _k not in seen:
+        seen.add(_k)
+        GEMINI_API_KEYS.append(_k)
 
 # ── Groq ─────────────────────────────────────────────────────
 GROQ_API_KEY  = os.getenv("GROQ_API_KEY")
