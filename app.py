@@ -70,6 +70,13 @@ st.markdown("""
 <meta name="google-site-verification" content="R6_IkqknJi3i8_JRs7Ie5IYhF3vYfiJjTCo0r44CdAk" />
 """, unsafe_allow_html=True)
 
+
+# ── Google AdSense ────────────────────────────────────────────────────────────
+st.markdown("""
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7537620467950326"
+     crossorigin="anonymous"></script>
+""", unsafe_allow_html=True)
+
 MAX_RESUME_SIZE_MB = 5
 
 
