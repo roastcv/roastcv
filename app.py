@@ -65,6 +65,11 @@ st.set_page_config(
 )
 
 
+# ── Google Search Console Verification ───────────────────────────────────────
+st.markdown("""
+<meta name="google-site-verification" content="R6_IkqknJi3i8_JRs7Ie5IYhF3vYfiJjTCo0r44CdAk" />
+""", unsafe_allow_html=True)
+
 MAX_RESUME_SIZE_MB = 5
 
 
@@ -1079,7 +1084,7 @@ def show_more_info():
             </div>
         </div>
         <div class="footer-bottom">
-            <span>© 2025 RoastCV — All rights reserved</span>
+            <span>© 2026 RoastCV — All rights reserved</span>
             <span style="opacity:0.5; margin: 0 0.75rem;">|</span>
             <span>Powered by AI · Built for job seekers</span>
         </div>
