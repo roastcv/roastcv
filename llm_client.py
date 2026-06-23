@@ -28,7 +28,7 @@ import threading
 
 from config import (
     LLM_PROVIDER, FALLBACK_PROVIDERS, MAX_TOKENS,
-    GEMINI_API_KEY, GEMINI_MODEL,
+    GEMINI_API_KEY, GEMINI_API_KEYS, GEMINI_MODEL,
     GROQ_API_KEY, GROQ_MODEL, GROQ_ENDPOINT,
     CEREBRAS_API_KEY, CEREBRAS_MODEL, CEREBRAS_ENDPOINT,
     MISTRAL_API_KEY, MISTRAL_MODEL, MISTRAL_ENDPOINT,
@@ -92,11 +92,31 @@ def get_active_provider() -> str:
 _clients: dict = {}
 
 
-def _get_gemini():
-    if "gemini" not in _clients:
+def _get_gemini_client(key: str):
+    """Each Gemini key gets its OWN cached client (own quota bucket)."""
+    cache_key = f"gemini:{key[-6:] if key else 'none'}"
+    if cache_key not in _clients:
         from google import genai
-        _clients["gemini"] = genai.Client(api_key=GEMINI_API_KEY)
-    return _clients["gemini"]
+        _clients[cache_key] = genai.Client(api_key=key)
+    return _clients[cache_key]
+
+
+# Round-robin so consecutive calls spread across all Gemini keys instead of
+# always hammering the first one — this is what actually multiplies your
+# effective free-tier quota (each key has its own 20 req/min bucket).
+import itertools as _itertools
+
+_gemini_key_lock = threading.Lock()
+_gemini_key_cycle = _itertools.cycle(GEMINI_API_KEYS) if GEMINI_API_KEYS else None
+
+
+def _gemini_keys_in_rotation_order():
+    if not GEMINI_API_KEYS:
+        return []
+    with _gemini_key_lock:
+        start_key = next(_gemini_key_cycle)
+    start_idx = GEMINI_API_KEYS.index(start_key)
+    return GEMINI_API_KEYS[start_idx:] + GEMINI_API_KEYS[:start_idx]
 
 
 def _get_openai_client(key: str, base_url: str, token: str = None):
@@ -123,23 +143,50 @@ def _get_azure():
 # ── Provider backends ─────────────────────────────────────────
 def _gemini_generate(system_prompt, user_prompt, max_tokens, json_mode) -> str:
     from google.genai import types
-    client = _get_gemini()
-    cfg = {"system_instruction": system_prompt, "max_output_tokens": max_tokens}
-    if json_mode:
-        cfg["response_mime_type"] = "application/json"
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=user_prompt,
-        config=types.GenerateContentConfig(**cfg),
-    )
-    candidates = getattr(response, "candidates", None)
-    if candidates:
-        finish = str(getattr(candidates[0], "finish_reason", "")).upper()
-        if finish in ("SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT"):
-            raise ValueError(f"Gemini blocked response: {finish}")
-        if finish == "MAX_TOKENS":
-            print("  WARNING: Gemini response truncated (MAX_TOKENS).")
-    return (response.text or "").strip()
+
+    keys = _gemini_keys_in_rotation_order()
+    if not keys:
+        raise EnvironmentError("No Gemini API key configured.")
+
+    last_error = None
+    for i, key in enumerate(keys):
+        try:
+            client = _get_gemini_client(key)
+            cfg = {"system_instruction": system_prompt, "max_output_tokens": max_tokens}
+            if json_mode:
+                cfg["response_mime_type"] = "application/json"
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(**cfg),
+            )
+            candidates = getattr(response, "candidates", None)
+            if candidates:
+                finish = str(getattr(candidates[0], "finish_reason", "")).upper()
+                if finish in ("SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT"):
+                    raise ValueError(f"Gemini blocked response: {finish}")
+                if finish == "MAX_TOKENS":
+                    print("  WARNING: Gemini response truncated (MAX_TOKENS).")
+            text = (response.text or "").strip()
+            if text:
+                if len(keys) > 1:
+                    print(f"  Gemini: used key #{i + 1}/{len(keys)}")
+                return text
+            last_error = ValueError("Gemini returned empty response")
+        except Exception as e:
+            last_error = e
+            err_str = str(e)
+            # Quota/rate-limit on THIS key — move straight to the next Gemini
+            # key (different key = different quota bucket, no need to wait).
+            if _is_rate_limit(err_str) and i < len(keys) - 1:
+                print(f"  Gemini key #{i + 1}/{len(keys)} quota hit — rotating to next Gemini key")
+                continue
+            # Non-quota error, or we just used the last key — stop trying
+            # Gemini keys and let the outer fallback chain move to the next
+            # PROVIDER (groq/cerebras/mistral/etc.).
+            raise
+
+    raise last_error if last_error else RuntimeError("All Gemini keys failed.")
 
 
 def _openai_compat_generate(client, model, system_prompt, user_prompt,
