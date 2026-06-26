@@ -400,6 +400,68 @@ _TEMPLATES_BY_ID = {t["id"]: t for t in TEMPLATES}
 
 
 # ---------------------------------------------------------------------------
+# 9. BLANK TEMPLATE DOWNLOADS (placeholder content — no resume/LLM call needed)
+# ---------------------------------------------------------------------------
+_BLANK_RESUME_TEXT = """John Doe
+john.doe@email.com | (555) 123-4567 | City, State | linkedin.com/in/johndoe | github.com/johndoe
+
+SUMMARY
+- [2-3 line summary of your experience, key skills, and career goal]
+
+SKILLS
+- [Skill 1]
+- [Skill 2]
+- [Skill 3]
+- [Skill 4]
+
+EXPERIENCE
+[Job Title] | [Company Name] | [Start Year] - [End Year / Present]
+- [Action verb] + [what you did] + [quantifiable result]
+- [Action verb] + [what you did] + [quantifiable result]
+
+PROJECTS
+[Project Name] | [Personal Project] | [Year]
+- [What you built]
+- [Tools/tech used]
+- [Outcome or impact]
+
+EDUCATION
+[Degree] | [Institution] | [Year]
+
+CERTIFICATIONS
+- [Certification Name] | [Issuing Body] | [Year]
+
+ACHIEVEMENTS
+- [Achievement description with measurable impact]
+"""
+
+_BLANK_RESUME_DATA = {
+    "name": "John Doe",
+    "contact": {
+        "email": "john.doe@email.com",
+        "phone": "(555) 123-4567",
+        "location": "City, State",
+        "linkedin": "linkedin.com/in/johndoe",
+        "github": "github.com/johndoe",
+    },
+}
+
+
+def generate_blank_template(template_id: str, output_path: str) -> str:
+    """
+    Generate a BLANK version of a template — same layout/palette as the real
+    resume builder, just filled with bracketed placeholder text instead of
+    actual resume content. No LLM call, no resume upload needed — this is
+    what powers the free "blank ATS templates" download section.
+
+    Args:
+        template_id: one of the ids returned by list_templates()
+        output_path: where to save the blank PDF
+    """
+    return generate_resume_pdf(template_id, _BLANK_RESUME_TEXT, _BLANK_RESUME_DATA, output_path)
+
+
+# ---------------------------------------------------------------------------
 # 8. PUBLIC API
 # ---------------------------------------------------------------------------
 def list_templates():
