@@ -1,48 +1,109 @@
 """
-AGENT 12: COVER LETTER
-Generates a customized cover letter based on the resume and job description.
+Config loader — supports 6 LLM providers with automatic fallback chain.
 
-FIX: Now accepts humanized_resume text as optional input.
-If humanized text is available, it is preferred over raw resume_data
-because it sounds more natural and human — which makes the cover letter
-sound better too.
+Providers (switched via LLM_PROVIDER in .env):
+  - "gemini"    -> Google Gemini / AI Studio
+  - "groq"      -> Groq (llama-3.3-70b etc.)
+  - "cerebras"  -> Cerebras (llama3.1-70b etc.)
+  - "mistral"   -> Mistral AI
+  - "github"    -> GitHub Models
+  - "azure"     -> Azure OpenAI / Azure AI Foundry
+
+FALLBACK CHAIN (auto-switch when credits run out):
+  Set FALLBACK_PROVIDERS=groq,cerebras,mistral,github in .env
+  If primary provider fails, it tries each fallback in order.
 """
 
-from llm_client import call_llm
+import os
+from dotenv import load_dotenv
 
-SYSTEM_PROMPT = """You are a Cover Letter Writer. Write a personalized, natural-sounding
-(not AI-generated) cover letter based on the candidate's resume and the job description.
-Use only real resume information — do not invent anything.
-The tone should match the resume — professional but human, not robotic."""
+load_dotenv()
+
+_PROVIDER_ALIASES = {
+    "foundry": "azure",
+    "azure-foundry": "azure",
+    "azure_foundry": "azure",
+    "google": "gemini",
+}
+
+_raw_provider = os.getenv("LLM_PROVIDER", "gemini").strip().lower()
+LLM_PROVIDER = _PROVIDER_ALIASES.get(_raw_provider, _raw_provider)
+
+# ── Fallback chain ────────────────────────────────────────────
+# Comma-separated list of providers to try if primary fails
+# Example: FALLBACK_PROVIDERS=groq,cerebras,mistral,github
+_raw_fallbacks = os.getenv("FALLBACK_PROVIDERS", "").strip()
+FALLBACK_PROVIDERS = [
+    _PROVIDER_ALIASES.get(p.strip().lower(), p.strip().lower())
+    for p in _raw_fallbacks.split(",")
+    if p.strip()
+]
+
+# ── Gemini ────────────────────────────────────────────────────
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+# ── Groq ─────────────────────────────────────────────────────
+GROQ_API_KEY  = os.getenv("GROQ_API_KEY")
+GROQ_MODEL    = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_ENDPOINT = os.getenv("GROQ_ENDPOINT", "https://api.groq.com/openai/v1")
+
+# ── Cerebras ──────────────────────────────────────────────────
+CEREBRAS_API_KEY  = os.getenv("CEREBRAS_API_KEY")
+CEREBRAS_MODEL    = os.getenv("CEREBRAS_MODEL", "llama-3.3-70b")
+CEREBRAS_ENDPOINT = os.getenv("CEREBRAS_ENDPOINT", "https://api.cerebras.ai/v1")
+
+# ── Mistral ───────────────────────────────────────────────────
+MISTRAL_API_KEY  = os.getenv("MISTRAL_API_KEY")
+MISTRAL_MODEL    = os.getenv("MISTRAL_MODEL", "mistral-small-latest")
+MISTRAL_ENDPOINT = os.getenv("MISTRAL_ENDPOINT", "https://api.mistral.ai/v1")
+
+# ── GitHub Models ─────────────────────────────────────────────
+GITHUB_TOKEN    = os.getenv("GITHUB_TOKEN")
+GITHUB_MODEL    = os.getenv("GITHUB_MODEL", "gpt-4.1-mini")
+GITHUB_ENDPOINT = os.getenv("GITHUB_ENDPOINT", "https://models.inference.ai.azure.com")
+
+# ── Azure OpenAI ──────────────────────────────────────────────
+AZURE_ENDPOINT    = os.getenv("AZURE_ENDPOINT")
+AZURE_API_KEY     = os.getenv("AZURE_API_KEY")
+AZURE_DEPLOYMENT  = os.getenv("AZURE_DEPLOYMENT", "gpt-4.1-mini")
+AZURE_API_VERSION = os.getenv("AZURE_API_VERSION", "2024-10-21")
+
+MAX_TOKENS = int(os.getenv("MAX_TOKENS", "8192"))
+OUTPUT_DIR = os.getenv("OUTPUT_DIR", "output")
+
+SUPPORTED_PROVIDERS = ("gemini", "groq", "cerebras", "mistral", "github", "azure")
 
 
-def run(
-    resume_data: dict,
-    jd_data: dict,
-    company_name: str = "",
-    humanized_resume: str = "",
-) -> str:
-    """
-    Args:
-        resume_data:      Structured dict from resume_reader agent.
-        jd_data:          Structured dict from jd_analyzer agent.
-        company_name:     Optional company name for personalization.
-        humanized_resume: Plain text from humanizer agent (preferred if available).
-    """
-    company_line = f"Company: {company_name}\n" if company_name else ""
+def _require(value, var_hint: str, provider_label: str):
+    if not value:
+        raise EnvironmentError(
+            f"LLM_PROVIDER is set to '{provider_label}' but {var_hint} is missing. "
+            f"Set it in your .env file."
+        )
 
-    # Use humanized plain text if available — it sounds more natural
-    if humanized_resume and humanized_resume.strip():
-        resume_section = f"Candidate's resume (humanized, natural tone):\n{humanized_resume}"
-    else:
-        resume_section = f"Candidate's structured resume data:\n{resume_data}"
 
-    user_prompt = (
-        f"{company_line}"
-        f"{resume_section}\n\n"
-        f"Job description requirements:\n{jd_data}\n\n"
-        "Write a concise (under 300 words), professional, natural-sounding cover letter. "
-        "Do NOT use generic AI phrases like 'I am excited to apply' or 'passionate professional'. "
-        "Make it specific to the candidate's actual experience and the job requirements."
-    )
-    return call_llm(SYSTEM_PROMPT, user_prompt, max_tokens=1000)
+def validate_provider(provider: str):
+    """Validate that required env vars exist for a given provider."""
+    if provider == "gemini":
+        _require(GEMINI_API_KEY, "GEMINI_API_KEY or GOOGLE_API_KEY", "gemini")
+    elif provider == "groq":
+        _require(GROQ_API_KEY, "GROQ_API_KEY", "groq")
+    elif provider == "cerebras":
+        _require(CEREBRAS_API_KEY, "CEREBRAS_API_KEY", "cerebras")
+    elif provider == "mistral":
+        _require(MISTRAL_API_KEY, "MISTRAL_API_KEY", "mistral")
+    elif provider == "github":
+        _require(GITHUB_TOKEN, "GITHUB_TOKEN", "github")
+    elif provider == "azure":
+        _require(AZURE_ENDPOINT, "AZURE_ENDPOINT", "azure")
+        _require(AZURE_API_KEY, "AZURE_API_KEY", "azure")
+    elif provider not in SUPPORTED_PROVIDERS:
+        raise EnvironmentError(
+            f"Unknown LLM_PROVIDER '{provider}'. "
+            f"Supported: {', '.join(SUPPORTED_PROVIDERS)}"
+        )
+
+
+# Validate primary provider on startup
+validate_provider(LLM_PROVIDER)
