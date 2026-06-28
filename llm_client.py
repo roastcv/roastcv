@@ -10,6 +10,7 @@ FIX (multi-user):
 
 import functools
 import json
+import os
 import random
 import re
 import time
@@ -33,7 +34,33 @@ MAX_USEFUL_WAIT       = 30   # FIX: 45 se 30 — skip slow providers faster
 MAX_CONCURRENT        = 5    # FIX: 2 se 5 — 5 users concurrently support karo
                               # (Gemini free tier pe FALLBACK_PROVIDERS set karo)
 
-GEMINI_STAGGER_MAX_MS = 600  # FIX: 800 se 600
+GEMINI_STAGGER_MAX_MS = 600
+
+# ── Gemini key rotation ───────────────────────────────────────
+# Picks up GEMINI_API_KEY, GEMINI_API_KEY1 ... GEMINI_API_KEY9
+# When one key hits rate limit, rotates to the next automatically.
+def _load_gemini_keys() -> list:
+    keys = []
+    if GEMINI_API_KEY:
+        keys.append(GEMINI_API_KEY)
+    for i in range(1, 10):
+        k = os.getenv(f"GEMINI_API_KEY{i}", "").strip()
+        if k and k not in keys:
+            keys.append(k)
+    return keys
+
+_GEMINI_KEYS      = _load_gemini_keys()
+_gemini_key_index = 0
+_gemini_key_lock  = threading.Lock()
+
+def _next_gemini_key() -> str:
+    global _gemini_key_index
+    with _gemini_key_lock:
+        if not _GEMINI_KEYS:
+            raise EnvironmentError("No Gemini API keys found. Set GEMINI_API_KEY in environment.")
+        key = _GEMINI_KEYS[_gemini_key_index % len(_GEMINI_KEYS)]
+        _gemini_key_index += 1
+        return key
 
 RATE_LIMIT_MARKERS = (
     "429", "resource_exhausted", "503", "unavailable",
@@ -116,7 +143,11 @@ def _get_azure():
 # ── Provider backends ─────────────────────────────────────────
 def _gemini_generate(system_prompt, user_prompt, max_tokens, json_mode) -> str:
     from google.genai import types
-    client = _get_gemini()
+    from google import genai
+
+    # Use rotating key — each call may use a different key
+    api_key = _next_gemini_key()
+    client = genai.Client(api_key=api_key)
 
     jitter = random.randint(0, GEMINI_STAGGER_MAX_MS) / 1000.0
     if jitter > 0:
