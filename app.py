@@ -13,47 +13,75 @@ RUN:
 
 import os
 import time
+import uuid
+import threading
 import tempfile
 import contextlib
 import streamlit as st
 
-import requests
 import wall_of_roasts
 from resume_templates import generate_resume_pdf, list_templates, generate_blank_template
 from resume_pdf import generate_cover_letter_pdf
 from resume_docx import generate_resume_docx, generate_cover_letter_docx
 import jd_analyzer
+import main as pipeline
 
-# ── Backend API Config ────────────────────────────────────────
-import os
-BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
-POLL_INTERVAL = 2  # seconds
+# ── In-process task store (replaces FastAPI backend) ─────────
+_tasks: dict = {}
+_tasks_lock = threading.Lock()
 
 def _submit_to_backend(resume_file, jd_text: str, company_name: str):
-    """Submit resume to FastAPI backend — returns task_id."""
-    try:
-        r = requests.post(
-            f"{BACKEND_URL}/api/v1/analyze",
-            files={"resume_file": (resume_file.name, resume_file.read(), "application/octet-stream")},
-            data={"jd_text": jd_text, "company_name": company_name},
-            timeout=30,
-        )
-        if r.status_code == 200:
-            return r.json().get("task_id")
-        else:
-            raise RuntimeError(r.json().get("detail", "Backend error"))
-    except requests.ConnectionError:
-        raise RuntimeError("Could not connect to backend. Is the server running?")
+    """Run pipeline in background thread — returns task_id."""
+    task_id = str(uuid.uuid4())
+    # Save uploaded file to temp location
+    suffix = os.path.splitext(resume_file.name)[-1]
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    tmp.write(resume_file.read())
+    tmp.close()
+    resume_path = tmp.name
+
+    with _tasks_lock:
+        _tasks[task_id] = {"status": "running", "partial_report": None, "report": None, "error": None}
+
+    def _run():
+        try:
+            def stage1_callback(step, total, label):
+                with _tasks_lock:
+                    _tasks[task_id]["progress_label"] = label
+
+            stage1 = pipeline.run_pipeline_stage1(resume_path, jd_text, progress_callback=stage1_callback)
+            with _tasks_lock:
+                _tasks[task_id]["partial_report"] = stage1
+                _tasks[task_id]["status"] = "stage1_complete"
+
+            def stage2_callback(step, total, label):
+                with _tasks_lock:
+                    _tasks[task_id]["progress_label"] = label
+
+            full = pipeline.run_pipeline_stage2(stage1, company_name=company_name, progress_callback=stage2_callback)
+            with _tasks_lock:
+                _tasks[task_id]["report"] = full
+                _tasks[task_id]["status"] = "complete"
+        except Exception as e:
+            with _tasks_lock:
+                _tasks[task_id]["status"] = "error"
+                _tasks[task_id]["error"] = str(e)
+        finally:
+            try:
+                os.unlink(resume_path)
+            except Exception:
+                pass
+
+    threading.Thread(target=_run, daemon=True).start()
+    return task_id
 
 def _fetch_task_status(task_id: str) -> dict:
-    """Fetch current task status."""
-    try:
-        r = requests.get(f"{BACKEND_URL}/api/v1/status/{task_id}", timeout=10)
-        if r.status_code == 200:
-            return r.json()
-        return {}
-    except Exception:
-        return {}
+    """Fetch current task status from in-memory store."""
+    with _tasks_lock:
+        task = _tasks.get(task_id, {})
+        return dict(task)
+
+POLL_INTERVAL = 2  # seconds
 
 
 @contextlib.contextmanager
@@ -2343,13 +2371,22 @@ if not has_report and _nav not in ("keywords", "templates", "roasts", "about", "
             tip_container  = st.empty()
 
             task = _fetch_task_status(task_id)
-            status   = task.get("status", "queued")
-            progress = task.get("progress", 0)
-            message  = task.get("message", "")
+            status   = task.get("status", "running")
+            label    = task.get("progress_label", "Analyzing...")
+
+            # Simple progress estimation based on status
+            if status == "running":
+                progress = 30
+            elif status == "stage1_complete":
+                progress = 60
+            elif status == "complete":
+                progress = 100
+            else:
+                progress = 10
 
             progress_bar.progress(progress / 100)
             tip_container.markdown(
-                f'<div class="tip-box">⚙️ {message}</div>',
+                f'<div class="tip-box">⚙️ {label}</div>',
                 unsafe_allow_html=True,
             )
             st.session_state["_poll_progress"] = progress
