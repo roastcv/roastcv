@@ -38,6 +38,20 @@ ADSENSE_SCRIPT = (
     'adsbygoogle.js?client=ca-pub-7537620467950326" crossorigin="anonymous"></script>'
 )
 
+SEO_TAGS = """<meta name="description" content="Roast your resume with AI. Get ATS score, cover letter, rewrite suggestions &amp; interview prep — 100% free. Powered by 13 AI agents." />
+<meta name="keywords" content="resume analyzer, ATS checker, AI resume review, cover letter generator, resume roast, free resume checker" />
+<meta name="robots" content="index, follow" />
+<meta property="og:title" content="RoastCV — Free AI Resume Analyzer &amp; ATS Checker" />
+<meta property="og:description" content="Roast your resume with AI. Get ATS score, cover letter, rewrite suggestions &amp; interview prep — 100% free." />
+<meta property="og:url" content="https://roastcv.in" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://roastcv.in/logo.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="RoastCV — Free AI Resume Analyzer &amp; ATS Checker" />
+<meta name="twitter:description" content="Roast your resume with AI. Get ATS score, cover letter, rewrite &amp; interview prep — 100% free." />
+<link rel="canonical" href="https://roastcv.in" />
+<title>RoastCV — Free AI Resume Analyzer &amp; ATS Checker</title>"""
+
 
 def main():
     try:
@@ -62,6 +76,14 @@ def main():
         sys.exit(1)
 
     changed = False
+
+    # ── Inject SEO tags ───────────────────────────────────────
+    if "roastcv — free ai resume" in html.lower():
+        print("SEO tags already present — skipping.")
+    else:
+        html = html.replace("</head>", SEO_TAGS + "\n</head>")
+        print("✓ SEO meta tags injected.")
+        changed = True
 
     # ── Inject GA4 ────────────────────────────────────────────
     if "G-FF6541C3YW" in html:
