@@ -93,20 +93,40 @@ LOGO_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.png")
 _page_icon = LOGO_PATH if os.path.exists(LOGO_PATH) else "🔥"
 
 st.set_page_config(
-    page_title="RoastCV — Free AI Resume Analyzer",
+    page_title="RoastCV — Free AI Resume Analyzer & ATS Checker",
     page_icon=_page_icon,
     layout="wide",
     initial_sidebar_state="collapsed",
     menu_items={
-        "Get Help": "mailto:support@roastcv.io",
+        "Get Help": "mailto:support@roastcv.in",
         "About": "RoastCV — Powered by AI agents to help you land your dream job.",
     },
 )
 
 
-# ── Google Search Console Verification ───────────────────────────────────────
+# ── SEO Meta Tags ─────────────────────────────────────────────────────────────
 st.markdown("""
 <meta name="google-site-verification" content="R6_IkqknJi3i8_JRs7Ie5IYhF3vYfiJjTCo0r44CdAk" />
+<meta name="description" content="Roast your resume with AI. Get ATS score, cover letter, rewrite suggestions & interview prep — 100% free. Powered by 13 AI agents." />
+<meta name="keywords" content="resume analyzer, ATS checker, AI resume review, cover letter generator, resume roast, free resume checker, job application, interview prep" />
+<meta name="robots" content="index, follow" />
+<meta name="author" content="RoastCV" />
+
+<!-- Open Graph (for social sharing) -->
+<meta property="og:title" content="RoastCV — Free AI Resume Analyzer & ATS Checker" />
+<meta property="og:description" content="Roast your resume with AI. Get ATS score, cover letter, rewrite suggestions & interview prep — 100% free." />
+<meta property="og:url" content="https://roastcv.in" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://roastcv.in/logo.png" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="RoastCV — Free AI Resume Analyzer & ATS Checker" />
+<meta name="twitter:description" content="Roast your resume with AI. Get ATS score, cover letter, rewrite & interview prep — 100% free." />
+<meta name="twitter:image" content="https://roastcv.in/logo.png" />
+
+<!-- Canonical URL -->
+<link rel="canonical" href="https://roastcv.in" />
 """, unsafe_allow_html=True)
 
 MAX_RESUME_SIZE_MB = 5
